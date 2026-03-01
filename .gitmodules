@@ -1,0 +1,9 @@
+[submodule "agent-stuff"]
+	path = agent-stuff
+	url = git@github.com:mitsuhiko/agent-stuff.git
+[submodule "pi-skills"]
+	path = pi-skills
+	url = git@github.com:tarasglek/pi-skills.git
+[submodule "superpowers"]
+	path = superpowers
+	url = git@github.com:obra/superpowers.git
