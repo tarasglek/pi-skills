@@ -3,6 +3,7 @@ set -euo pipefail
 
 BASE=""
 OUTPUT="patch-series-review.md"
+AUTO_COMMIT=1
 
 resolve_default_base() {
   local upstream
@@ -30,9 +31,13 @@ while [[ $# -gt 0 ]]; do
       OUTPUT="$2"
       shift 2
       ;;
+    --no-commit)
+      AUTO_COMMIT=0
+      shift
+      ;;
     *)
       echo "Unknown arg: $1" >&2
-      echo "Usage: $0 [--base <ref>] [--output <file>]" >&2
+      echo "Usage: $0 [--base <ref>] [--output <file>] [--no-commit]" >&2
       exit 2
       ;;
   esac
@@ -66,36 +71,45 @@ if [[ -z "$commits" ]]; then
     echo "No commits in range."
   } > "$OUTPUT"
   echo "Wrote $OUTPUT (empty range)"
-  exit 0
+else
+  {
+    echo "# Patch Series Review"
+    echo
+    printf 'Base: `%s`  \n' "$BASE"
+    printf 'Range: `%s..HEAD`\n' "$BASE"
+    echo
+    echo 'Review note convention: prefix comments with `R:`.'
+    echo
+
+    while IFS= read -r c; do
+      subj=$(git show -s --format='%s' "$c")
+      author=$(git show -s --format='%an <%ae>' "$c")
+      date=$(git show -s --format='%ad' --date=short "$c")
+
+      echo "## $subj"
+      echo
+      printf -- '- Commit: `%s`\n' "$c"
+      echo "- Author: $author"
+      echo "- Date: $date"
+      echo
+      echo '```diff'
+      git show --patch --stat --format= "$c"
+      echo '```'
+      echo
+      echo '> R: '
+      echo
+    done <<< "$commits"
+  } > "$OUTPUT"
+
+  echo "Wrote $OUTPUT"
 fi
 
-{
-  echo "# Patch Series Review"
-  echo
-  printf 'Base: `%s`  \n' "$BASE"
-  printf 'Range: `%s..HEAD`\n' "$BASE"
-  echo
-  echo 'Review note convention: prefix comments with `R:`.'
-  echo
-
-  while IFS= read -r c; do
-    subj=$(git show -s --format='%s' "$c")
-    author=$(git show -s --format='%an <%ae>' "$c")
-    date=$(git show -s --format='%ad' --date=short "$c")
-
-    echo "## $subj"
-    echo
-    printf -- '- Commit: `%s`\n' "$c"
-    echo "- Author: $author"
-    echo "- Date: $date"
-    echo
-    echo '```diff'
-    git show --patch --stat --format= "$c"
-    echo '```'
-    echo
-    echo '> R: '
-    echo
-  done <<< "$commits"
-} > "$OUTPUT"
-
-echo "Wrote $OUTPUT"
+if [[ "$AUTO_COMMIT" -eq 1 ]]; then
+  if ! git diff --quiet -- "$OUTPUT" || ! git diff --cached --quiet -- "$OUTPUT" || [[ -n "$(git ls-files --others --exclude-standard -- "$OUTPUT")" ]]; then
+    git add -- "$OUTPUT"
+    git commit -m "docs(review): update patch-series review markdown"
+    echo "Committed $OUTPUT"
+  else
+    echo "No changes in $OUTPUT; nothing to commit"
+  fi
+fi

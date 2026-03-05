@@ -42,14 +42,14 @@ Use this when you want a single markdown artifact for manual review comments.
 - Default output: `patch-series-review.md`
 - Reviewer convention: prefix comments with `R:`
 
-Examples:
-```bash
-./scripts/generate-patch-series-review.sh
-./scripts/generate-patch-series-review.sh --base origin/main
-./scripts/generate-patch-series-review.sh --base <base-ref> --output /tmp/series.md
-```
+Recommended agentic review loop:
+1. Generate review markdown (script auto-commits).
+2. Add/edit `R:` comments in that file.
+3. Use `git diff` to extract feedback lines and update patch history.
+4. Stash the review markdown. Adjust history accordingly
 
 ## Notes
 - Keep commits logically scoped; avoid mixing unrelated changes.
 - Keep author attribution unless explicitly asked to rewrite it.
 - Drop planning/noise commits from submission series when appropriate.
+- For large `patch-series-review.md` files, open in VS Code and use **Fold All** (`Ctrl+K Ctrl+0`) to collapse sections, then expand commit-by-commit for focused review.
