@@ -37,6 +37,7 @@ Turn a feature branch into a clean, reviewable, bisectable patch series for LKML
 ## Review Script (Optional)
 Use this when you want a single markdown artifact for manual review comments.
 
+- Run from this skill directory.
 - Script: `./scripts/generate-patch-series-review.sh`
 - Default base: inferred from current branch upstream, else `origin/HEAD`
 - Default output: `patch-series-review.md`
