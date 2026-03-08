@@ -1,6 +1,6 @@
 [submodule "agent-stuff"]
 	path = agent-stuff
-	url = git@github.com:mitsuhiko/agent-stuff.git
+	url = git@github.com:tarasglek/mitsuhiko-pi-agent-stuff.git
 [submodule "pi-skills"]
 	path = pi-skills
 	url = git@github.com:tarasglek/badlogic-pi-skills.git
