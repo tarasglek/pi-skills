@@ -1,5 +1,5 @@
 [submodule "agent-stuff"]
-	path = agent-stuff
+	path = mitsuhiko-pi-agent-stuff
 	url = git@github.com:tarasglek/mitsuhiko-pi-agent-stuff.git
 [submodule "pi-skills"]
 	path = pi-skills
