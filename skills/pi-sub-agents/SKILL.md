@@ -53,16 +53,28 @@ Keep names aligned where practical:
 node ~/.pi/agent/skills/skills/pi-sub-agents/pi-sub-agents.ts --name agent/auth-audit --task "Investigate auth flow and report only"
 ```
 
+If the current parent pi was not launched with `--session`, first run `/session`, copy the session ID/path, then run:
+
+```bash
+node ~/.pi/agent/skills/skills/pi-sub-agents/pi-sub-agents.ts --session <id-or-path> --name agent/auth-audit --task "Investigate auth flow and report only"
+```
+
 ## Preconditions if parent is missing `--session`
 
-Tell the user to do this in the parent pi:
+Tell the user to run this in the parent pi first:
 
 ```text
 /session
 /name parent/<task>   # optional
 ```
 
-Then restart with:
+Then prefer running the helper with an explicit session override:
+
+```bash
+node ~/.pi/agent/skills/skills/pi-sub-agents/pi-sub-agents.ts --session <id-or-path> --name <agent-name> --task "<initial-task>"
+```
+
+If they want to relaunch parent pi first, use:
 
 ```bash
 deno run -A npm:@mariozechner/pi-coding-agent --session <id-or-path>

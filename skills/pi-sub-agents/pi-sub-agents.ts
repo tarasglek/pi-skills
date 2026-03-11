@@ -6,6 +6,7 @@ import { ensureSession, newWindow, requireTmux, sanitizeWindowName, uniqueWindow
 interface Args {
   name?: string;
   task?: string;
+  session?: string;
   tmuxSession: string;
   help: boolean;
 }
@@ -17,6 +18,7 @@ function parseArgs(argv: string[]): Args {
     if (arg === "--help" || arg === "-h") args.help = true;
     else if (arg === "--name") args.name = argv[++i];
     else if (arg === "--task") args.task = argv[++i];
+    else if (arg === "--session") args.session = argv[++i];
     else if (arg === "--tmux-session") args.tmuxSession = argv[++i] ?? args.tmuxSession;
     else throw new Error(`Unknown argument: ${arg}`);
   }
@@ -24,24 +26,27 @@ function parseArgs(argv: string[]): Args {
 }
 
 function printHelp(): void {
-  console.log(`Usage:\n  node pi-sub-agents.ts --name <agent-name> --task "<initial-task>" [--tmux-session pi-agents]\n`);
+  console.log(`Usage:\n  node pi-sub-agents.ts --name <agent-name> --task "<initial-task>" [--session <id-or-path>] [--tmux-session pi-agents]\n`);
 }
 
 function shellQuote(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
-function remediation(): string {
+function remediation(args: Args): string {
+  const quotedTask = args.task ? shellQuote(args.task) : '"<initial-task>"';
+  const name = args.name ?? "<agent-name>";
   return [
-    "Parent pi must be started with --session.",
-    "In the parent pi, run:",
+    "Parent pi must be started with --session, or you must pass --session explicitly.",
+    "Run this in the parent pi first:",
     "  /session",
     "  /name parent/<task>   # optional",
-    "Then restart with:",
+    "Then copy the session ID/path and run:",
+    `  node ~/.pi/agent/skills/skills/pi-sub-agents/pi-sub-agents.ts --session <id-or-path> --name ${name} --task ${quotedTask}`,
+    "If you prefer to relaunch parent pi first:",
     "  deno run -A npm:@mariozechner/pi-coding-agent --session <id-or-path>",
     "Fallback if needed:",
     "  pi --session <id-or-path>",
-    "Then rerun this helper.",
   ].join("\n");
 }
 
@@ -57,10 +62,18 @@ async function main(): Promise<void> {
   }
 
   requireTmux();
-  const parent = await detectParentPi();
-  const sessionArg = extractSessionArg(parent.argv);
+
+  let sessionArg = args.session;
+  let cwd = process.cwd();
+
   if (!sessionArg) {
-    throw new Error(remediation());
+    const parent = await detectParentPi();
+    sessionArg = extractSessionArg(parent.argv);
+    cwd = parent.cwd ?? cwd;
+  }
+
+  if (!sessionArg) {
+    throw new Error(remediation(args));
   }
 
   const parentPath = await resolveSessionPath(sessionArg);
@@ -71,7 +84,6 @@ async function main(): Promise<void> {
   const parentWindow = uniqueWindowName(args.tmuxSession, sanitizeWindowName(args.name, "parent"));
   const childWindow = uniqueWindowName(args.tmuxSession, sanitizeWindowName(args.name, "subagent"));
 
-  const cwd = parent.cwd ?? process.cwd();
   const launcher = "deno run -A npm:@mariozechner/pi-coding-agent";
 
   newWindow(args.tmuxSession, parentWindow, `cd ${shellQuote(cwd)} && ${launcher} --session ${shellQuote(parentPath)}`);

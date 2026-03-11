@@ -3,7 +3,7 @@
 ## v1 command shape
 
 ```bash
-node pi-sub-agents.ts --name <agent-name> --task "<initial-task>"
+node pi-sub-agents.ts --name <agent-name> --task "<initial-task>" [--session <id-or-path>]
 ```
 
 The task must be treated as one quoted string all the way through helper invocation and child pi launch. Do not split it into multiple prompts or positional fragments.
@@ -18,6 +18,9 @@ The task must be treated as one quoted string all the way through helper invocat
 
 ## Optional arguments
 
+- `--session <id-or-path>`
+  - explicit parent session override
+  - use this when the current parent pi was not started with `--session`
 - `--tmux-session <name>`
   - default: `pi-agents`
 
@@ -42,7 +45,13 @@ The helper must hard-fail when:
 If parent `pi` is missing `--session`, print short instructions telling the user to:
 1. run `/session` in the parent pi
 2. optionally run `/name parent/<task>`
-3. restart pi with:
+3. copy the session ID/path and run the helper with an explicit override, for example:
+
+```bash
+node ~/.pi/agent/skills/skills/pi-sub-agents/pi-sub-agents.ts --session <id-or-path> --name <agent-name> --task "<initial-task>"
+```
+
+4. optionally relaunch parent pi with:
 
 ```bash
 deno run -A npm:@mariozechner/pi-coding-agent --session <id-or-path>
@@ -53,8 +62,6 @@ Fallback only if needed in the local environment:
 ```bash
 pi --session <id-or-path>
 ```
-
-4. rerun the helper
 
 ## Naming contract
 
