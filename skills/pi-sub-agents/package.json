@@ -1,0 +1,11 @@
+{
+  "name": "pi-sub-agents-skill",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@mariozechner/pi-coding-agent": "0.57.1",
+    "find-process": "^2.1.0",
+    "pidtree": "^0.6.0",
+    "ps-list": "^9.0.0"
+  }
+}
