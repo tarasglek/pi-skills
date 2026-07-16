@@ -76,7 +76,7 @@ Example:
 
 ```sh
 pkgx -Q rg
-pkgm shim ripgrep
+pkgm shim rg
 command -v rg
 rg --version
 ```
