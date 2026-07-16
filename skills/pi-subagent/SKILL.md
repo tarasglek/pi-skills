@@ -58,6 +58,24 @@ tail -f /tmp/my-agent.jsonl | jq -r '
 
 `pi -p` prints mostly only final text. It can look frozen in tmux. Prefer interactive `pi` or `--mode json`.
 
+### Preserve provider extensions
+
+Custom providers and their authentication may come from extensions. Do **not** use `--no-extensions` merely to isolate a subagent or test a skill; this can remove the configured provider and produce `No models match pattern` or `No API key found`.
+
+To test without skill influence, disable skills only:
+
+```bash
+pi -p --no-session --no-skills @/tmp/test-prompt.md
+```
+
+Before unattended runs, verify selected provider/model exists:
+
+```bash
+pi --list-models
+```
+
+Use `--no-extensions` only when you have confirmed the chosen provider and credentials work without extensions.
+
 ## Continue Existing Work
 
 Find latest session:
