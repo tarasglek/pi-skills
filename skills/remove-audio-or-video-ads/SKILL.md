@@ -7,7 +7,7 @@ description: Use when the user asks to remove ads, sponsor reads, promos, or ad 
 
 ## Core rule
 
-Use `erm --adblock` to remove ad/sponsor/promo ranges. Render directly; do not dry-run. Add `--video` only when preserving picture. Always work in `/tmp`, then copy final files into `$ATTACHMENT_DIR` for Signal delivery.
+Use `erm --adblock --no-room-tone` to remove ad/sponsor/promo ranges. Room-tone looping is forbidden for ad-block renders because even a quiet automatic sample can become an audible repeating artifact. Render directly; do not dry-run. Add `--video` only when preserving picture. Always work in `/tmp`, then copy final files into `$ATTACHMENT_DIR` for Signal delivery.
 
 ## Inputs
 
@@ -37,7 +37,7 @@ ERM='uv run erm'
 Use tmux for all `--adblock` invocations that may take long, including render and downloads/transcodes around long episodes. Do not rely on a single foreground shell command; transcription/rendering can exceed tool timeouts. Always log output to `$TMP/*.log`.
 
 ```sh
-tmux new -d -s erm-adblock-render "cd /home/taras/Documents/podcast-adblock/erm && uv run erm '$TMP/source.mp3' --model small --compute-type int8 --adblock --adblock-transcript '$TMP/adblock.vtt' --json '$TMP/cuts.json' -o '$TMP/adfree.wav' 2>&1 | tee '$TMP/render.log'"
+tmux new -d -s erm-adblock-render "cd /home/taras/Documents/podcast-adblock/erm && uv run erm '$TMP/source.mp3' --model small --compute-type int8 --adblock --no-room-tone --adblock-transcript '$TMP/adblock.vtt' --json '$TMP/cuts.json' -o '$TMP/adfree.wav' 2>&1 | tee '$TMP/render.log'"
 tmux capture-pane -pt erm-adblock-render
 ```
 
@@ -48,7 +48,7 @@ For 20–60+ minute media, use `small`/`int8`; `large-v3` is slow on CPU.
 Audio podcast:
 ```sh
 $ERM "$TMP/source.mp3" --model small --compute-type int8 \
-  --adblock \
+  --adblock --no-room-tone \
   --adblock-transcript "$TMP/adblock.vtt" \
   --json "$TMP/cuts.json" \
   -o "$TMP/adfree.wav"
@@ -57,7 +57,7 @@ $ERM "$TMP/source.mp3" --model small --compute-type int8 \
 Video:
 ```sh
 $ERM "$TMP/source.mp4" --model small --compute-type int8 \
-  --adblock --video \
+  --adblock --video --no-room-tone \
   --adblock-transcript "$TMP/adblock.vtt" \
   --json "$TMP/cuts.json" \
   -o "$TMP/adfree-full.mp4"
@@ -125,5 +125,6 @@ curl -sS "https://podcasts.coolness.fyi/?v=$V" | head
 - Do not run bare `yt-dlp`; use `uvx yt-dlp`.
 - Do not write final files directly into `$ATTACHMENT_DIR`; copy from `/tmp`.
 - Do not dry-run; render directly.
+- Do not omit `--no-room-tone` from ad-block renders; short automatic samples can loop audibly beneath the entire output.
 - Do not use default `large-v3` for quick iteration on CPU.
 - Do not omit `--video` if the user wants picture preserved.
