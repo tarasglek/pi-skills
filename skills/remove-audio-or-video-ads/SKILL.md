@@ -88,36 +88,27 @@ cp "$TMP/cuts.json" "$ATTACHMENT_DIR/adfree-cuts.json"
 
 Report duration, size, total removed, and the attachment paths.
 
-## Podcasts page
+## Podcasts page and RSS
 
-When output is an audio podcast, also publish it to the static reverse-bin page:
+When output is an audio podcast, also publish it to the static reverse-bin site:
 
 - App dir: `~/smallweb/podcasts`
 - Page: `https://podcasts.coolness.fyi/`
-- Copy final `.m4a` into app dir with a safe unique filename.
-- Put newest episode link at top of `index.html`.
-- Link text should be only the episode title. No metadata text, no “download/listen”.
-- Add cache-busting query params to both page URL and audio link: `?v=$(date +%s)`.
-- No audio player. No cuts link unless user asks.
+- Feed: `https://podcasts.coolness.fyi/feed.xml`
+- Copy the final `.m4a` into the app directory with a safe unique filename.
+- Run the site's Deno generator after every copy. It rebuilds `index.html` and `feed.xml` from all media files, newest mtime first; never edit either generated file manually.
+- Embedded media title metadata becomes the displayed/RSS title, with filename fallback.
 
 ```sh
 APP=~/smallweb/podcasts
-V=$(date +%s)
 mkdir -p "$APP"
 cp "$TMP/adfree.m4a" "$APP/$SLUG.m4a"
-python3 - <<PY
-from pathlib import Path
-app = Path.home() / 'smallweb/podcasts'
-p = app / 'index.html'
-entry = '''  <p><a href="$SLUG.m4a?v=$V">$TITLE</a></p>\n'''
-if p.exists():
-    s = p.read_text()
-    s = s.replace('  <h1>Podcasts</h1>\n', '  <h1>Podcasts</h1>\n' + entry, 1)
-else:
-    s = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Podcasts</title></head><body>\n  <h1>Podcasts</h1>\n' + entry + '</body></html>\n'
-p.write_text(s)
-PY
-curl -sS "https://podcasts.coolness.fyi/?v=$V" | head
+(
+  cd "$APP"
+  deno task generate
+)
+curl -fsS https://podcasts.coolness.fyi/ | head
+curl -fsS https://podcasts.coolness.fyi/feed.xml | head
 ```
 
 ## Common mistakes
