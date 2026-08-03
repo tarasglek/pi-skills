@@ -13,20 +13,41 @@ Turn a feature branch into a clean, reviewable, bisectable patch series for LKML
 - You want to review patches offline in one markdown file
 - You want to iterate on review comments and rewrite history non-interactively
 
+## Commit Message Standard
+
+Every non-trivial patch needs a concise subject **and a rationale body**. Splitting history without preserving why each patch exists is not review-ready.
+
+Each body should explain, as applicable:
+
+- the observed failure or limitation;
+- the root cause or violated invariant;
+- why this change is the right boundary and approach;
+- consequences of leaving the old behavior in place;
+- validation or evidence that motivated the patch.
+
+Do not narrate the diff line by line or pad the body. Write enough context that a reviewer who has not seen the debugging session can understand the decision.
+
+When folding a later fix into the commit that introduced the affected code, carry the fix's rationale into that introducing commit's body. The final series must not retain knowingly broken intermediate states merely to preserve chronological history.
+
 ## Workflow
 1. **Safety backup**
    - `git branch backup/pre-lkml-$(date +%Y%m%d-%H%M%S)`
 2. **Inspect current series**
    - `git log --oneline --reverse <base>..HEAD`
 3. **Rewrite history (non-interactive by default)**
-   - Prepare a rebase todo file with `pick/reword/fixup/squash/edit`
+   - Group changes by reviewable intent, not implementation chronology.
+   - Fold corrective commits into the patch that introduced the behavior when doing so removes a known-broken intermediate state.
+   - Prepare a rebase todo file with `pick/reword/fixup/squash/edit`.
    - Run rebase with sequence editor override:
      - `GIT_SEQUENCE_EDITOR='cp /tmp/rebase-todo.txt' git rebase -i <base>`
-   - If rebase pauses and requests commit message editor, continue non-interactively:
+   - Reword every non-trivial patch to satisfy the commit-message standard above.
+   - If rebase pauses and requests a commit message editor, continue non-interactively:
      - `GIT_EDITOR=true git rebase --continue`
 4. **Validate final series**
-   - `git log --oneline --reverse <base>..HEAD`
-   - `git range-diff backup/pre-lkml-<ts>...HEAD`
+   - Build/test each commit when ordering or dependencies changed; every commit should be bisectable.
+   - Inspect subjects and bodies: `git log --reverse --format=fuller <base>..HEAD`.
+   - Compare content and intent: `git range-diff backup/pre-lkml-<ts>...HEAD`.
+   - Confirm folded fixes left no corrective/intermediate commits in the final series.
 
 ## Non-Interactive Rules
 - Prefer command flags/env vars over opening editors.
