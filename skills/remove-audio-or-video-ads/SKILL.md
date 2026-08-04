@@ -98,17 +98,22 @@ When output is an audio podcast, also publish it to the static reverse-bin site:
 - Copy the final `.m4a` into the app directory with a safe unique filename.
 - Run the site's Deno generator after every copy. It rebuilds `index.html` and `feed.xml` from all media files, newest mtime first; never edit either generated file manually.
 - Embedded media title metadata becomes the displayed/RSS title, with filename fallback.
+- Create a unique website URL using `?cachebreak=<timestamp>` for every delivery.
+- In the user-facing response, link the cache-busted website URL—not `feed.xml`. Mention the feed only when the user explicitly asks for its URL.
 
 ```sh
 APP=~/smallweb/podcasts
+CACHEBREAK=$(date +%s%N)
+WEBSITE="https://podcasts.coolness.fyi/?cachebreak=$CACHEBREAK"
 mkdir -p "$APP"
 cp "$TMP/adfree.m4a" "$APP/$SLUG.m4a"
 (
   cd "$APP"
   deno task generate
 )
-curl -fsS https://podcasts.coolness.fyi/ | head
+curl -fsS "$WEBSITE" | head
 curl -fsS https://podcasts.coolness.fyi/feed.xml | head
+printf 'Website: %s\n' "$WEBSITE"
 ```
 
 ## Common mistakes
@@ -119,3 +124,4 @@ curl -fsS https://podcasts.coolness.fyi/feed.xml | head
 - Do not omit `--no-room-tone` from ad-block renders; short automatic samples can loop audibly beneath the entire output.
 - Do not use default `large-v3` for quick iteration on CPU.
 - Do not omit `--video` if the user wants picture preserved.
+- Do not give the RSS feed as the delivery link; give the website with a fresh `?cachebreak=` value.
