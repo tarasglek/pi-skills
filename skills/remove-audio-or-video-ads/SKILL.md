@@ -7,7 +7,7 @@ description: Use when the user asks to remove ads, sponsor reads, promos, or ad 
 
 ## Core rule
 
-Use `erm --adblock --no-room-tone` to remove ad/sponsor/promo ranges. Room-tone looping is forbidden for ad-block renders because even a quiet automatic sample can become an audible repeating artifact. Render directly; do not dry-run. Add `--video` only when preserving picture. Always work in `/tmp`, then copy final files into `$ATTACHMENT_DIR` for Signal delivery.
+Use `erm --adblock --no-room-tone --denoise none` to remove ad/sponsor/promo ranges. Room-tone looping is forbidden for ad-block renders because even a quiet automatic sample can become an audible repeating artifact. Denoising is forbidden by default because mastered podcast audio should pass through unchanged outside the cuts. Render directly; do not dry-run. Add `--video` only when preserving picture. Always work in `/tmp`, then copy final files into `$ATTACHMENT_DIR` for Signal delivery.
 
 ## Inputs
 
@@ -37,7 +37,7 @@ ERM='uv run erm'
 Use tmux for all `--adblock` invocations that may take long, including render and downloads/transcodes around long episodes. Do not rely on a single foreground shell command; transcription/rendering can exceed tool timeouts. Always log output to `$TMP/*.log`.
 
 ```sh
-tmux new -d -s erm-adblock-render "cd /home/taras/Documents/podcast-adblock/erm && uv run erm '$TMP/source.mp3' --model small --compute-type int8 --adblock --no-room-tone --adblock-transcript '$TMP/adblock.vtt' --json '$TMP/cuts.json' -o '$TMP/adfree.wav' 2>&1 | tee '$TMP/render.log'"
+tmux new -d -s erm-adblock-render "cd /home/taras/Documents/podcast-adblock/erm && uv run erm '$TMP/source.mp3' --model small --compute-type int8 --adblock --no-room-tone --denoise none --adblock-transcript '$TMP/adblock.vtt' --json '$TMP/cuts.json' -o '$TMP/adfree.wav' 2>&1 | tee '$TMP/render.log'"
 tmux capture-pane -pt erm-adblock-render
 ```
 
@@ -48,7 +48,7 @@ For 20–60+ minute media, use `small`/`int8`; `large-v3` is slow on CPU.
 Audio podcast:
 ```sh
 $ERM "$TMP/source.mp3" --model small --compute-type int8 \
-  --adblock --no-room-tone \
+  --adblock --no-room-tone --denoise none \
   --adblock-transcript "$TMP/adblock.vtt" \
   --json "$TMP/cuts.json" \
   -o "$TMP/adfree.wav"
@@ -57,7 +57,7 @@ $ERM "$TMP/source.mp3" --model small --compute-type int8 \
 Video:
 ```sh
 $ERM "$TMP/source.mp4" --model small --compute-type int8 \
-  --adblock --video --no-room-tone \
+  --adblock --video --no-room-tone --denoise none \
   --adblock-transcript "$TMP/adblock.vtt" \
   --json "$TMP/cuts.json" \
   -o "$TMP/adfree-full.mp4"
@@ -67,20 +67,38 @@ Use the default `pi` command unless the user explicitly asks for a different det
 
 ## Signal-friendly output
 
-For audio, make an iOS-friendly AAC/M4A:
+Do not down-bitrate the source. Probe its audio bitrate and use that as the AAC target, with a 128 kbps floor for already-low-bitrate inputs and a 320 kbps ceiling for lossless/PCM sources:
 
 ```sh
-ffmpeg -y -i "$TMP/adfree.wav" -c:a aac -b:a 96k -movflags +faststart "$TMP/adfree.m4a"
+SOURCE_MEDIA=$(find "$TMP" -maxdepth 1 -type f -name 'source.*' -print -quit)
+SOURCE_BPS=$(ffprobe -v error -select_streams a:0 \
+  -show_entries stream=bit_rate -of default=nw=1:nk=1 "$SOURCE_MEDIA" \
+  | awk '/^[0-9]+$/ { print; exit }')
+SOURCE_BPS=${SOURCE_BPS:-192000}
+if [ "$SOURCE_BPS" -lt 128000 ]; then
+  AAC_BPS=128000
+elif [ "$SOURCE_BPS" -gt 320000 ]; then
+  AAC_BPS=320000
+else
+  AAC_BPS=$SOURCE_BPS
+fi
+```
+
+For audio, make an iOS-friendly AAC/M4A at that quality target:
+
+```sh
+ffmpeg -y -i "$TMP/adfree.wav" -c:a aac -b:a "$AAC_BPS" \
+  -movflags +faststart "$TMP/adfree.m4a"
 cp "$TMP/adfree.m4a" "$ATTACHMENT_DIR/adfree.m4a"
 cp "$TMP/cuts.json" "$ATTACHMENT_DIR/adfree-cuts.json"
 ```
 
-For video, make an iOS-friendly MP4:
+For video, use the same source-aware AAC target:
 
 ```sh
 ffmpeg -y -i "$TMP/adfree-full.mp4" \
   -vf 'scale=-2:540' -c:v libx264 -preset veryfast -crf 29 \
-  -c:a aac -b:a 96k -movflags +faststart \
+  -c:a aac -b:a "$AAC_BPS" -movflags +faststart \
   "$TMP/adfree-signal.mp4"
 cp "$TMP/adfree-signal.mp4" "$ATTACHMENT_DIR/adfree.mp4"
 cp "$TMP/cuts.json" "$ATTACHMENT_DIR/adfree-cuts.json"
@@ -122,6 +140,8 @@ printf 'Website: %s\n' "$WEBSITE"
 - Do not write final files directly into `$ATTACHMENT_DIR`; copy from `/tmp`.
 - Do not dry-run; render directly.
 - Do not omit `--no-room-tone` from ad-block renders; short automatic samples can loop audibly beneath the entire output.
+- Do not omit `--denoise none`; mastered podcast audio must remain unchanged outside cuts.
+- Do not hard-code a lower AAC bitrate such as 96 kbps; derive the target from the source audio bitrate.
 - Do not use default `large-v3` for quick iteration on CPU.
 - Do not omit `--video` if the user wants picture preserved.
 - Do not give the RSS feed as the delivery link; give the website with a fresh `?cachebreak=` value.
