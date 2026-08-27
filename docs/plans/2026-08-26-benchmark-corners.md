@@ -11,5 +11,5 @@
 - [ ] Task 1: Add and verify benchmark corners skill
   - Files: `skills/benchmark-corners/SKILL.md`
   - RED: preserve three baseline prompt outputs showing inconsistent or redundant reporting.
-  - Implement: require useful payload corners, bandwidth, min/p50/p95/p99 latency, compact slash format, samples, errors, and explicit missing data.
+  - Implement: require smallest/largest sizes, bandwidth, min/p50/p95/p99 latency, and one compact slash-format table.
   - GREEN: rerun all three prompts with only this skill loaded; validate skill discovery and format.
