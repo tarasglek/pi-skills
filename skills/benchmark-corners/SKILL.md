@@ -8,6 +8,8 @@ description: Use when testing or reporting latency-sensitive performance across 
 - Test smallest and largest sizes.
 - Measure bandwidth and latency min/p50/p95/p99 at both.
 - Report one compact table with percentiles combined in one slash-separated column.
+- Keep one tracked rolling baseline per non-sensitive hardware combination at `benchmarks/baselines/<hardware-combination>.json`; accepting a result overwrites it and Git provides history.
+- Ignore candidate/raw runs. Record only revision/dirty state, relevant config and command, repeats, samples, errors, and corner metrics. Compare only equivalent hardware/config/method; never record machine identifiers or secrets.
 
 | Size | BW | Latency min/p50/p95/p99 |
 |---:|---:|---:|
