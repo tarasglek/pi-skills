@@ -54,6 +54,17 @@ tail -f /tmp/my-agent.jsonl | jq -r '
 '
 ```
 
+### Progress Updates
+
+Keep user informed while monitoring:
+
+- Update immediately after launch.
+- Update on meaningful state changes, completion, failure, or blocker.
+- During silence, send heartbeat about every two minutes.
+- Use caveman-brief format: `Done: … Now: … Next: …`.
+- Omit raw logs and routine polling noise.
+- Always send final completion or blocker update.
+
 ### Avoid `pi -p` for long work
 
 `pi -p` prints mostly only final text. It can look frozen in tmux. Prefer interactive `pi` or `--mode json`.
